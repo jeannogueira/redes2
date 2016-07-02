@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+<!-- LAYOUT BY http://purecss.io/ -->
+
+<script type="text/javascript">
+/*
+ * == Slotted ALOHA simulation. ==
+
+ * Considerando:
+ * - Todos os frames possuem exatamente L bits.
+ * - O tempo é dividido em intervalos de tamanho L/R segundos (um intervalo é igual ao tempo de transmissão de um quadro).
+ * - Os nós começam a transmitir frames somente no início dos intervalos.
+ * - Os nós são sincronizados de modo que cada nó sabe onde os intervalos começam.
+ * - Se dois ou mais nós se colidirem em um intervalo, então todos os nós detectarão o evento de colisão antes do término do intervalo.
+
+ * Seja P uma probabilidade, isto é, um número entre 0 e 1. O funcionamento do slotted ALOHA em cada nó é simples:
+ * - Quando o nó tem um novo frame para enviar, espera até o início do próximo intervalo e transmite o quadro inteiro no intervalo.
+ * - Se não ouver uma colisão, o nó transmitirá seu quadro com sucesso e, assim, não precisará considerar a retransmissão do quadro. (O nó pode preparar um novo quadro pra transmitir, caso tenha algum.)
+ * - Se ouver uma colisão, o nó o detectará antes do final do intervalo. Ele retransmitirá seu quadro em cada intervalo subsequente com probabilidade P até que o cadro seja transmitido sem colisão.
+*/
+
+/*
+Input:
+- Tamanho Q de cada quadro em bits (fixo).
+- Velocidade C do canal em bits/segundo.
+- Quantidade E de estações no canal.
+- Taxa média TE de transmissão para cada estação em bits por segundo.
+
+Dicas:
+
+- Represente o tempo em microssegundos (1 segundo = 1.000.000 microssegundos)
+- Para gerar o tempo t de criação do próximo quadro seguindo a distrubuição de Poisson, use o algoritmo:
+    t = -ln(1.0 - random()) / taxa_media_envio_quadros_por_microssegundo
+  - taxa_media_envio_quadros_por_microssegundo = Te/(Q*1000000)
+  - random() - função que retorna valor aleatório entre 0 e 1 com distribuição uniforme
+- Tem um arquivo nesta página com dica de como criar um simulador baseado em eventos.
+
+*/
+
+//Math.floor((Math.random() * 10) + 1); - Random number between 1 and 10;
+
+/**
+####################################################################################################
+  ###########################################IMPLEMENTATION#############################################
+####################################################################################################
+**/
+
+//https://sunfishempire.wordpress.com/2014/08/19/5-ways-to-use-a-javascript-hashmap/
+//http://www.w3schools.com/js
+
+/* -- Node status constants -- */
+const OFF	 	= 0;
+const SEND 		= 1;
+const COLLIDED 	= 2;
+/* ---- */
+
+var stations 		= {}; 	//object{status: CONSTANT}
+var transmissions 	= 0; 	//transmissions number
+var collisions 		= 0; 	//collisions number
+
+function transmissionRate(pSize, pSpeed){
+	var statusTable = document.getElementById("statusTable");
+
+	with(statusTable.insertRow(1)){
+		insertCell(0).innerHTML = "Size:";
+		insertCell(1).innerHTML = pSize;
+	}
+
+	with(statusTable.insertRow(2)){
+		insertCell(0).innerHTML = "Speed:";
+		insertCell(1).innerHTML = pSpeed;
+	}
+
+	with(statusTable.insertRow(3)){
+		insertCell(0).innerHTML = "Transmission Rate:";
+		insertCell(1).innerHTML = pSize/pSpeed;
+	}
+}
+
+function addCollision(){
+	collisions++;
+}
+
+function addTransmission(){
+	transmission++;
+}
+
+function initStations(pStations){
+	for (var i = 1; i < (pStations + 1); i++) {
+		stations[i] = {status: OFF};
+
+		console.log("Station "+i+" started!");
+	}
+}
+
+function startTransmission(){
+	for(var station in stations){
+		if(stations[station].status != COLLIDED){
+			stations[station].status = Math.round(Math.random());
+		}
+	}
+}
+
+function collisionCheck(){
+	var countTransmissor = 0;
+
+	for(var station in stations){
+		if(stations[station].status == SEND) countTransmissor++
+	}
+
+	if(countTransmissor > 1){
+		console.log("Collision detected!!!");
+		setCollidedStatus();
+		addCollision();
+	}
+}
+
+function setCollidedStatus(){
+	for(var station in stations){
+		if (stations[station].status == SEND) stations[station].status = COLLIDED;
+	}
+}
+
+function showStations(){
+	for(var station in stations){
+		for(st in stations[station]){
+			console.log("Station "+station+" "+st +": "+stations[station][st]);
+		}
+	}
+}
+
+function finishStations(){
+	for(var station in stations){
+		delete stations[station];
+	}
+}
+
+/*
+* -- MAIN FUNCTION --
+*/
+
+function main(){
+	var frameSize 			= parseInt(document.getElementById("framesize").value);
+	var channelSpeed 		= parseInt(document.getElementById("channelspeed").value); // bit/sec
+	var stationQuant 		= parseInt(document.getElementById("stationquant").value);
+	//var mTransmissionRate	= document.getElementById("mtransmissionrate").value; //Not to Slotted ALOHA
+
+	initStations(stationQuant);
+
+	startTransmission();
+	showStations();
+	collisionCheck();
+
+	finishStations();
+}
+
+</script>
+</head>
+
+<body>
+
+<div align="center">
+	<h2>Slotted ALOHA - Protocol simulation.</h2>
+	<form id="frm" action="javascript:void(0);" class="pure-form">
+		<fieldset class="pure-group">
+			<input id="framesize"				type="text"	name="frame"				class="pure-input-1-2"		placeholder="Frame Size (bits)">
+			<input id="channelspeed"			type="text"	name="channel"			class="pure-input-1-2"		placeholder="Channel Speed (bits/sec)">
+			<input id="stationquant"			type="text"	name="stations"			class="pure-input-1-2"		placeholder="Stations Quantity">
+			<!--<input id="mtransmissionrate"	type="text"	name="transmission"		class="pure-input-1-2"		placeholder="Transmission Rate (bit/sec)"> NOT TO slottedALOHA-->
+		</fieldset>
+
+		<button class="pure-button pure-input-1-2 pure-button-primary" onclick="main()">Start Simulation</button>
+
+	</form>
+</div>
+
+<br /><br />
+
+<div align="center">
+	<table id="statusTable" name="tableGeneric" class="pure-table">
+		<thead>
+			<tr>
+				<th>Info</th>
+				<th>Result</th>
+			</tr>
+		</thead>
+
+		<tbody>
+			<tr>
+				<td> - </td>
+				<td> - </td>
+			</tr>
+		</tbody>
+	</table>
+
+</div>
+
+</body>
+</html>
