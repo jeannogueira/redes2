@@ -115,6 +115,8 @@ function collisionCheck(){
 		console.log("Collision detected!!!");
 		setCollidedStatus();
 		addCollision();
+	}else{
+		addTransmission();
 	}
 }
 
@@ -139,7 +141,7 @@ function finishStations(){
 }
 
 /*
-* -- MAIN FUNCTION --
+ -- MAIN FUNCTION --
 */
 
 function main(){
